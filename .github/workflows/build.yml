@@ -1,0 +1,26 @@
+name: Run extra tests
+
+on:
+  push:
+
+jobs:
+  linux-32:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        cross:
+          -
+          - i686-linux32.meson
+    steps:
+      - name: Install prerequisites
+        run: |
+          sudo apt-get update && sudo apt-get install meson nasm gcc-multilib
+      - uses: actions/checkout@v6
+      - name: Build and test
+        run: |
+          mkdir build
+          cd build
+          meson setup -Dtrim_dsp=false --buildtype release --werror $([ "${{matrix.cross}}" == "" ] || echo --cross-file=../package/crossfiles/${{matrix.cross}}) ..
+          ninja
+          meson test checkasm -v
