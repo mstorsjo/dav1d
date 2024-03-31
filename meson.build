@@ -483,16 +483,18 @@ if (is_asm_enabled and
     (cc.get_id() != 'clang-cl' or meson.version().version_compare('<0.58.0')))
     gaspp = find_program('gas-preprocessor.pl')
     use_gaspp = true
-    gaspp_gen = generator(gaspp,
-        output: '@BASENAME@.obj',
-        arguments: [
+    gaspp_args = [
             '-as-type', 'armasm',
             '-arch', host_machine.cpu_family(),
             '--',
             host_machine.cpu_family() == 'aarch64' ? 'armasm64' : 'armasm',
             '-nologo',
             '-I@0@'.format(dav1d_src_root),
-            '-I@0@/'.format(meson.current_build_dir()),
+            '-I@0@/'.format(meson.current_build_dir())
+    ]
+    gaspp_gen = generator(gaspp,
+        output: '@BASENAME@.obj',
+        arguments: gaspp_args + [
             '@INPUT@',
             '-c',
             '-o', '@OUTPUT@'
@@ -538,25 +540,36 @@ if is_asm_enabled and host_machine.cpu_family() == 'aarch64'
         'sve2':    'sqrdmulh z0.s, z0.s, z0.s',
     }
     foreach name, instr : extensions
-        # Test for support for the various extensions. First test if
-        # the assembler supports the .arch_extension directive for
-        # enabling/disabling the extension, then separately check whether
-        # the instructions themselves are supported. Even if .arch_extension
-        # isn't supported, we may be able to assemble the instructions
-        # if the .arch level includes support for them.
-        code = '__asm__ (' + as_arch_str
-        code += '".arch_extension ' + name + '\\n"'
-        code += ');'
-        supports_archext = cc.compiles(code)
-        cdata.set10('HAVE_AS_ARCHEXT_' + name.to_upper() + '_DIRECTIVE', supports_archext)
-        code = '__asm__ (' + as_arch_str
-        if supports_archext
+        if use_gaspp
+            cdata.set10('HAVE_AS_ARCHEXT_' + name.to_upper() + '_DIRECTIVE', false)
+            # TODO: Not using instr here, assuming we have existing files that
+            # contain these test instructions.
+            # TODO: This leaves 'tmp-foo.obj' files behind in the toplevel source
+            # directory.
+            r = run_command(gaspp, gaspp_args, 'mesontest/' + name + '.S', '-c', '-o', 'tmp-' + name + '.obj', check: false)
+            message('Checking for gaspp/armasm64 ' + name.to_upper() + ': ' + (r.returncode() == 0 ? 'YES' : 'NO'))
+            cdata.set10('HAVE_' + name.to_upper(), r.returncode() == 0)
+        else
+            # Test for support for the various extensions. First test if
+            # the assembler supports the .arch_extension directive for
+            # enabling/disabling the extension, then separately check whether
+            # the instructions themselves are supported. Even if .arch_extension
+            # isn't supported, we may be able to assemble the instructions
+            # if the .arch level includes support for them.
+            code = '__asm__ (' + as_arch_str
             code += '".arch_extension ' + name + '\\n"'
+            code += ');'
+            supports_archext = cc.compiles(code)
+            cdata.set10('HAVE_AS_ARCHEXT_' + name.to_upper() + '_DIRECTIVE', supports_archext)
+            code = '__asm__ (' + as_arch_str
+            if supports_archext
+                code += '".arch_extension ' + name + '\\n"'
+            endif
+            code += '"' + instr + '\\n"'
+            code += ');'
+            supports_instr = cc.compiles(code, name: name.to_upper())
+            cdata.set10('HAVE_' + name.to_upper(), supports_instr)
         endif
-        code += '"' + instr + '\\n"'
-        code += ');'
-        supports_instr = cc.compiles(code, name: name.to_upper())
-        cdata.set10('HAVE_' + name.to_upper(), supports_instr)
     endforeach
 endif
 
