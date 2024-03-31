@@ -44,6 +44,7 @@ ENABLE_DOTPROD
 #define LOOP_ALIGN      2
 
 
+        .text
 // Lookup table used to help conversion of shifted 32-bit values to 8-bit.
         .align 4
 L(hv_tbl_neon_dotprod):
