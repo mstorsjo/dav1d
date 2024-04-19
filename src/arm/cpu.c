@@ -115,6 +115,7 @@ COLD unsigned dav1d_get_cpu_flags_arm(void) {
 #endif
     /* No I8MM or SVE feature detection available on Windows at the time of
      * writing. */
+    flags |= DAV1D_ARM_CPU_FLAG_I8MM;
     return flags;
 }
 
