@@ -167,6 +167,8 @@ COLD unsigned dav1d_get_cpu_flags_arm(void) {
     if (IsProcessorFeaturePresent(PF_ARM_SVE_I8MM_INSTRUCTIONS_AVAILABLE))
         flags |= DAV1D_ARM_CPU_FLAG_I8MM;
 #endif
+    flags |= DAV1D_ARM_CPU_FLAG_DOTPROD | DAV1D_ARM_CPU_FLAG_I8MM |
+             DAV1D_ARM_CPU_FLAG_SVE | DAV1D_ARM_CPU_FLAG_SVE2;
     return flags;
 }
 
