@@ -34,11 +34,11 @@
 //                             const int max_width, const int max_height);
 function ipred_dc_128_8bpc_neon, export=1
         clz             w3,  w3
-        adr             x5,  L(ipred_dc_128_tbl)
+        movrel          x5,  ipred_dc_128_tbl
         sub             w3,  w3,  #25
-        ldrh            w3,  [x5, w3, uxtw #1]
+        ldr             w3,  [x5, w3, uxtw #2]
         movi            v0.16b,  #128
-        sub             x5,  x5,  w3, uxtw
+        add             x5,  x5,  w3, sxtw
         add             x6,  x0,  x1
         lsl             x1,  x1,  #1
         br              x5
@@ -93,14 +93,15 @@ function ipred_dc_128_8bpc_neon, export=1
         st1             {v0.16b, v1.16b, v2.16b, v3.16b}, [x6], x1
         b.gt            64b
         ret
-
-L(ipred_dc_128_tbl):
-        .hword L(ipred_dc_128_tbl) - 640b
-        .hword L(ipred_dc_128_tbl) - 320b
-        .hword L(ipred_dc_128_tbl) -  16b
-        .hword L(ipred_dc_128_tbl) -   8b
-        .hword L(ipred_dc_128_tbl) -   4b
 endfunc
+
+const ipred_dc_128_tbl
+        .word 640b - ipred_dc_128_tbl
+        .word 320b - ipred_dc_128_tbl
+        .word 16b  - ipred_dc_128_tbl
+        .word 8b   - ipred_dc_128_tbl
+        .word 4b   - ipred_dc_128_tbl
+endconst
 
 // void ipred_v_8bpc_neon(pixel *dst, const ptrdiff_t stride,
 //                        const pixel *const topleft,
