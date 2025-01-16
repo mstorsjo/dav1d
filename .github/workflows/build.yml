@@ -333,3 +333,22 @@ jobs:
           meson setup --cross-file cross.txt --buildtype release -Dtrim_dsp=false --werror ..
           ninja
           meson test checkasm -v
+
+  linux-aarch64:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Install prerequisites
+        run: |
+          sudo apt-get update && sudo apt-get install meson
+      - uses: actions/checkout@v4
+      - name: Checkout test data
+        run: |
+          cd tests
+          git clone https://code.videolan.org/videolan/dav1d-test-data.git
+      - name: Build and run all tests
+        run: |
+          mkdir build
+          cd build
+          meson setup -Dtestdata_tests=true -Dtrim_dsp=false --buildtype release --werror ..
+          ninja
+          meson test -v
