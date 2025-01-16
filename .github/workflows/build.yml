@@ -352,3 +352,38 @@ jobs:
           meson setup -Dtestdata_tests=true -Dtrim_dsp=false --buildtype release --werror ..
           ninja
           meson test -v
+
+  linux-armhf:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Install prerequisites
+        run: |
+          sudo dpkg --add-architecture armhf
+          sudo apt-get update && sudo apt-get install meson g++-arm-linux-gnueabihf libc6:armhf libstdc++6:armhf
+      - uses: actions/checkout@v4
+      - name: Checkout test data
+        run: |
+          cd tests
+          git clone https://code.videolan.org/videolan/dav1d-test-data.git
+      - name: Build and run all tests
+        run: |
+          mkdir build
+          cd build
+
+          cat >cross.txt <<EOF
+          [binaries]
+          c = 'arm-linux-gnueabihf-gcc'
+          cpp = 'arm-linux-gnueabihf-g++'
+          ar = 'arm-linux-gnueabihf-ar'
+          strip = 'arm-linux-gnueabihf-strip'
+
+          [host_machine]
+          system = 'linux'
+          cpu_family = 'arm'
+          cpu = 'armv7a'
+          endian = 'little'
+          EOF
+
+          meson setup --cross-file cross.txt -Dtestdata_tests=true -Dtrim_dsp=false --buildtype release --werror ..
+          ninja
+          meson test -v
