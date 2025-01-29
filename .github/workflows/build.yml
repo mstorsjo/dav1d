@@ -292,20 +292,27 @@ jobs:
           meson test checkasm -v
 
   llvm-mingw:
-    runs-on: ubuntu-latest
-    container: linaro/wine-arm64
+    runs-on: ubuntu-22.04-arm
     steps:
       - name: Install prerequisites
         run: |
-          apt-get update && apt-get install -y --no-install-recommends meson ninja-build
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends meson ninja-build
       - uses: actions/checkout@v4
       - name: Install llvm-mingw
         run: |
-          curl -LO https://github.com/mstorsjo/llvm-mingw/releases/download/20240619/llvm-mingw-20240619-ucrt-ubuntu-20.04-x86_64.tar.xz
-          tar -Jxf llvm-mingw-*-ucrt-ubuntu-*-x86_64.tar.xz
+          curl -LO https://github.com/mstorsjo/llvm-mingw/releases/download/20240619/llvm-mingw-20240619-ucrt-ubuntu-20.04-aarch64.tar.xz
+          tar -Jxf llvm-mingw-*-ucrt-ubuntu-*-aarch64.tar.xz
           rm llvm-mingw-*.tar.xz
           mv llvm-mingw-* /opt/llvm-mingw
           echo /opt/llvm-mingw/bin >> $GITHUB_PATH
+      - name: Install Wine
+        run: |
+          sudo apt-get update && sudo apt-get install wine64
+          wine wineboot
+      - name: Checkout test data
+        run: |
+          cd tests
+          git clone https://code.videolan.org/videolan/dav1d-test-data.git
       - name: Build and test checkasm
         run: |
           mkdir build
@@ -318,7 +325,7 @@ jobs:
           ar = 'aarch64-w64-mingw32-ar'
           strip = 'aarch64-w64-mingw32-strip'
           windres = 'aarch64-w64-mingw32-windres'
-          exe_wrapper = ['wine-arm64']
+          exe_wrapper = ['wine']
 
           [properties]
           needs_exe_wrapper = true
@@ -330,9 +337,9 @@ jobs:
           endian = 'little'
           EOF
 
-          meson setup --cross-file cross.txt --buildtype release -Dtrim_dsp=false --werror ..
+          meson setup --cross-file cross.txt --buildtype release -Dtrim_dsp=false -Dtestdata_tests=true --werror ..
           ninja
-          meson test checkasm -v
+          meson test -v
 
   linux-aarch64:
     runs-on: ubuntu-24.04-arm
