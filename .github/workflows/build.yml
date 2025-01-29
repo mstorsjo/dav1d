@@ -235,6 +235,12 @@ jobs:
   msvc-wine:
     runs-on: ubuntu-24.04-arm
     container: ghcr.io/mstorsjo/wine
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { arch: arm, sdk: 10.0.22621 } # The newer SDK doesn't inclue ARM
+          - { arch: arm64, sdk: 10.0.26100 } # The older SDK doesn't have flags for detecting modern aarch64 extensions
     steps:
       - name: Checkout msvc-wine
         uses: actions/checkout@v4
@@ -247,7 +253,7 @@ jobs:
           apt-get update && apt-get install -y --no-install-recommends wine python3 msitools ca-certificates ninja-build winbind meson
           wine wineboot
           cd msvc-wine
-          ./vsdownload.py --accept-license --dest /opt/msvc --sdk-version 10.0.26100
+          ./vsdownload.py --accept-license --dest /opt/msvc --sdk-version ${{matrix.sdk}}
           ./install.sh /opt/msvc
       - uses: actions/checkout@v4
       - name: Checkout gas-preprocessor
@@ -264,8 +270,19 @@ jobs:
         run: |
           mkdir build
           cd build
-          export PATH=$(pwd)/../gas-preprocessor:/opt/msvc/bin/arm64:$PATH
+          export PATH=$(pwd)/../gas-preprocessor:/opt/msvc/bin/${{matrix.arch}}:$PATH
 
+          arch=${{matrix.arch}}
+          case $arch in
+          arm)
+              cpu=armv7
+              cpu_family=arm
+              ;;
+          arm64)
+              cpu=aarch64
+              cpu_family=aarch64
+              ;;
+          esac
           cat >cross.txt <<EOF
           [binaries]
           c = 'cl'
@@ -279,8 +296,8 @@ jobs:
 
           [host_machine]
           system = 'windows'
-          cpu_family = 'aarch64'
-          cpu = 'aarch64'
+          cpu_family = '$cpu_family'
+          cpu = '$cpu'
           endian = 'little'
           EOF
 
@@ -291,6 +308,12 @@ jobs:
   llvm-mingw:
     runs-on: ubuntu-24.04-arm
     container: ghcr.io/mstorsjo/wine
+    strategy:
+      fail-fast: false
+      matrix:
+        arch:
+          - armv7
+          - aarch64
     steps:
       - name: Install prerequisites
         run: |
@@ -312,13 +335,16 @@ jobs:
           mkdir build
           cd build
 
+          arch=${{matrix.arch}}
+          cpu_family=$arch
+          if [ "$cpu_family" = "armv7" ]; then cpu_family="arm"; fi
           cat >cross.txt <<EOF
           [binaries]
-          c = 'aarch64-w64-mingw32-clang'
-          cpp = 'aarch64-w64-mingw32-clang++'
-          ar = 'aarch64-w64-mingw32-ar'
-          strip = 'aarch64-w64-mingw32-strip'
-          windres = 'aarch64-w64-mingw32-windres'
+          c = '$arch-w64-mingw32-clang'
+          cpp = '$arch-w64-mingw32-clang++'
+          ar = '$arch-w64-mingw32-ar'
+          strip = '$arch-w64-mingw32-strip'
+          windres = '$arch-w64-mingw32-windres'
           exe_wrapper = ['wine']
 
           [properties]
@@ -326,8 +352,8 @@ jobs:
 
           [host_machine]
           system = 'windows'
-          cpu_family = 'aarch64'
-          cpu = 'aarch64'
+          cpu_family = '$cpu_family'
+          cpu = '$arch'
           endian = 'little'
           EOF
 
