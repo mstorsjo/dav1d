@@ -233,8 +233,8 @@ jobs:
           meson test -v
 
   msvc-wine:
-    runs-on: ubuntu-latest
-    container: linaro/wine-arm64
+    runs-on: ubuntu-24.04-arm
+    container: ghcr.io/mstorsjo/wine
     steps:
       - name: Checkout msvc-wine
         uses: actions/checkout@v4
@@ -243,18 +243,11 @@ jobs:
           ref: 49ae4b63f350770584469317e3995d100d4dcd39
           path: msvc-wine
       - name: Install msvc-wine
-        env:
-          WINEPREFIX: /tmp/wine-x64-prefix
         run: |
           apt-get update && apt-get install -y --no-install-recommends wine python3 msitools ca-certificates ninja-build winbind meson
           wine wineboot
           cd msvc-wine
           ./vsdownload.py --accept-license --dest /opt/msvc --sdk-version 10.0.26100
-          echo "#!/bin/bash" > wrappers/wine-msvc-new.sh
-          echo "export WINEPREFIX=/tmp/wine-x64-prefix" >> wrappers/wine-msvc-new.sh
-          cat wrappers/wine-msvc.sh >> wrappers/wine-msvc-new.sh
-          chmod a+x wrappers/wine-msvc-new.sh
-          mv wrappers/wine-msvc-new.sh wrappers/wine-msvc.sh
           ./install.sh /opt/msvc
       - uses: actions/checkout@v4
       - name: Checkout gas-preprocessor
@@ -263,6 +256,10 @@ jobs:
           repository: ffmpeg/gas-preprocessor
           ref: 7380ac24e1cd23a5e6d76c6af083d8fc5ab9e943
           path: gas-preprocessor
+      - name: Checkout test data
+        run: |
+          cd tests
+          git clone https://code.videolan.org/videolan/dav1d-test-data.git
       - name: Build and test checkasm
         run: |
           mkdir build
@@ -275,7 +272,7 @@ jobs:
           cpp = 'cl'
           ar = 'lib'
           windres = 'rc'
-          exe_wrapper = ['wine-arm64']
+          exe_wrapper = ['wine']
 
           [properties]
           needs_exe_wrapper = true
@@ -287,9 +284,9 @@ jobs:
           endian = 'little'
           EOF
 
-          meson setup --cross-file cross.txt --buildtype release -Dtrim_dsp=false --werror ..
+          meson setup --cross-file cross.txt --buildtype release -Dtrim_dsp=false -Dtestdata_tests=true --werror ..
           ninja
-          meson test checkasm -v
+          meson test -v
 
   llvm-mingw:
     runs-on: ubuntu-24.04-arm
