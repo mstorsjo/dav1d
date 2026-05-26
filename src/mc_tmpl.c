@@ -957,7 +957,13 @@ static void resize_c(pixel *dst, const ptrdiff_t dst_stride,
 #endif
 #endif
 
+static void fill_block_tab_c(uint8_t *block, uint8_t value, ptrdiff_t line_size, int h) {}
+
 COLD void bitfn(dav1d_mc_dsp_init)(Dav1dMCDSPContext *const c) {
+
+    c->fill_block_tab[0] = fill_block_tab_c;
+    c->fill_block_tab[1] = fill_block_tab_c;
+
 #define init_mc_fns(type, name) do { \
     c->mc        [type] = put_##name##_c; \
     c->mc_scaled [type] = put_##name##_scaled_c; \

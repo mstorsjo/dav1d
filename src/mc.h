@@ -143,6 +143,9 @@ typedef decl_resize_fn(*resize_fn);
     init_8tap_gen(mc,  opt); \
     init_8tap_gen(mct, opt)
 
+typedef void (*op_fill_func)(uint8_t *block /* align width (8 or 16) */,
+                             uint8_t value, ptrdiff_t line_size, int h);
+
 typedef struct Dav1dMCDSPContext {
     mc_fn mc[N_2D_FILTERS];
     mc_scaled_fn mc_scaled[N_2D_FILTERS];
@@ -159,6 +162,8 @@ typedef struct Dav1dMCDSPContext {
     warp8x8t_fn warp8x8t;
     emu_edge_fn emu_edge;
     resize_fn resize;
+
+    op_fill_func fill_block_tab[2];
 } Dav1dMCDSPContext;
 
 bitfn_decls(void dav1d_mc_dsp_init, Dav1dMCDSPContext *c);

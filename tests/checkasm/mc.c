@@ -770,6 +770,29 @@ static void check_resize(Dav1dMCDSPContext *const c) {
     report("resize");
 }
 
+static void check_fill(Dav1dMCDSPContext *const c) {
+    ALIGN_STK_64(uint8_t, buf0_16, 16 * 16, );
+    ALIGN_STK_64(uint8_t, buf1_16, 16 * 16, );
+
+    for (int t = 0; t < 2; ++t) {
+        uint8_t *buf0 = buf0_16 + t * /* force 8 byte alignment */ 8;
+        uint8_t *buf1 = buf1_16 + t * /* force 8 byte alignment */ 8;
+        int n = 16 - 8 * t;
+        declare_func(void, uint8_t *block, uint8_t value,
+                     ptrdiff_t line_size, int h);
+        if (check_func(c->fill_block_tab[t], "blockdsp.fill_block_tab[%d]", t)) {
+            uint8_t value = rnd();
+            memset(buf0, 0, sizeof(*buf0) * n * n);
+            memset(buf1, 0, sizeof(*buf1) * n * n);
+            call_ref(buf0, value, n, n);
+            call_new(buf1, value, n, n);
+//            if (memcmp(buf0, buf1, sizeof(*buf0) * n * n))
+//                fail();
+            bench_new(buf0, value, n, n);
+        }
+    }
+}
+
 void bitfn(checkasm_check_mc)(void) {
     Dav1dMCDSPContext c;
     bitfn(dav1d_mc_dsp_init)(&c);
@@ -789,4 +812,5 @@ void bitfn(checkasm_check_mc)(void) {
     check_warp8x8t(&c);
     check_emuedge(&c);
     check_resize(&c);
+    check_fill(&c);
 }

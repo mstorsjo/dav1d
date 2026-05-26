@@ -89,8 +89,22 @@ decl_fn(emu_edge, dav1d_emu_edge);
 
 decl_fn(resize, dav1d_resize);
 
+void dav1d_fill_block_tab_16_sse2(uint8_t *block, uint8_t value, ptrdiff_t line_size, int h);
+void dav1d_fill_block_tab_8_sse2(uint8_t *block, uint8_t value, ptrdiff_t line_size, int h);
+void dav1d_fill_block_tab_16_avx2(uint8_t *block, uint8_t value, ptrdiff_t line_size, int h);
+void dav1d_fill_block_tab_8_avx2(uint8_t *block, uint8_t value, ptrdiff_t line_size, int h);
+
 static ALWAYS_INLINE void mc_dsp_init_x86(Dav1dMCDSPContext *const c) {
     const unsigned flags = dav1d_get_cpu_flags();
+
+    if (flags & DAV1D_X86_CPU_FLAG_SSE2) {
+        c->fill_block_tab[0] = dav1d_fill_block_tab_16_sse2;
+        c->fill_block_tab[1] = dav1d_fill_block_tab_8_sse2;
+    }
+    if (flags & DAV1D_X86_CPU_FLAG_AVX2) {
+        c->fill_block_tab[0] = dav1d_fill_block_tab_16_avx2;
+        c->fill_block_tab[1] = dav1d_fill_block_tab_8_avx2;
+    }
 
     if(!(flags & DAV1D_X86_CPU_FLAG_SSSE3))
         return;
