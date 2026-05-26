@@ -68,7 +68,6 @@ COLD unsigned dav1d_get_cpu_flags_x86(void) {
                     flags |= DAV1D_X86_CPU_FLAG_SSE41;
             }
         }
-#if ARCH_X86_64
         /* We only support >128-bit SIMD on x86-64. */
         if (X(r.ecx, 0x18000000)) /* OSXSAVE/AVX */ {
             const uint64_t xcr0 = dav1d_cpu_xgetbv(0);
@@ -85,7 +84,6 @@ COLD unsigned dav1d_get_cpu_flags_x86(void) {
                 }
             }
         }
-#endif
         if (!memcmp(cpu.vendor, "AuthenticAMD", sizeof(cpu.vendor))) {
             if ((flags & DAV1D_X86_CPU_FLAG_AVX2) && family <= 0x19) {
                 /* Excavator, Zen, Zen+, Zen 2, Zen 3, Zen 3+, Zen 4 */
