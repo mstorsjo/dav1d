@@ -112,21 +112,31 @@ jobs:
           meson test
           meson test checkasm -v
 
-  linux-pacbti:
+  linux-pac-bti-gcs:
     runs-on: ubuntu-24.04-arm
     steps:
       - name: Install prerequisites
         run: |
-          sudo apt-get update && sudo apt-get install clang meson qemu-user-static
+          sudo apt-get update && sudo apt-get install clang-20 lld-20 meson
+          sudo ln -sf clang-20 /usr/bin/clang
+          sudo ln -sf ld.lld-20 /usr/bin/ld.lld
       - name: Set up Fedora cross sysroot
         run: |
-          docker run --rm -v $PWD:/host arm64v8/fedora:35 bash -c "yum -y install glibc-devel gcc && tar -cf /host/fedora.tar /usr /etc/ld.so.cache"
+          docker run --rm -v $PWD:/host fedora:43 bash -c "yum -y install glibc-devel gcc && tar -cf /host/fedora.tar /usr /etc/ld.so.cache"
           mkdir -p /opt/fedora-sysroot
           tar -C /opt/fedora-sysroot -xf fedora*.tar
           rm fedora*.tar
           ln -s usr/lib64 /opt/fedora-sysroot/lib64
           ln -s usr/lib /opt/fedora-sysroot/lib
       - uses: actions/checkout@v6
+      - name: Install a new enough QEMU
+        run: |
+          # Download a version from Ubuntu 24.04
+          curl -LO https://ports.ubuntu.com/ubuntu-ports/pool/universe/q/qemu/qemu-user_10.2.1+ds-1ubuntu3_arm64.deb
+          # Installing the package depends on a package ubuntu-virt, which doesn't exist in 24.04
+          #sudo dpkg -i qemu-user*.deb
+          # Therefore, just unpack it manually
+          sudo dpkg-deb -x qemu-user*.deb /
       - name: Build and test checkasm
         run: |
           mkdir build
@@ -137,12 +147,12 @@ jobs:
           cpp = 'clang++'
           ar = 'ar'
           strip = 'strip'
-          exe_wrapper = ['qemu-aarch64-static', '-L', '/opt/fedora-sysroot']
+          exe_wrapper = ['qemu-aarch64-static', '-L', '/opt/fedora-sysroot', '-E', 'GLIBC_TUNABLES=glibc.cpu.aarch64_gcs=1']
 
           [properties]
           needs_exe_wrapper = false
           c_args = ['--target=aarch64-linux-gnu', '--sysroot=/opt/fedora-sysroot', '-mbranch-protection=standard']
-          c_link_args = ['--target=aarch64-linux-gnu', '--sysroot=/opt/fedora-sysroot', '-Wl,-z,force-bti', '-L/opt/fedora-sysroot/usr/lib64', '-L/opt/fedora-sysroot/usr/lib/gcc/aarch64-redhat-linux/11']
+          c_link_args = ['--target=aarch64-linux-gnu', '--sysroot=/opt/fedora-sysroot', '-fuse-ld=lld', '-Wl,-z,force-bti,-z,gcs=always,-z,gcs-report=warning', '-L/opt/fedora-sysroot/usr/lib64', '-L/opt/fedora-sysroot/usr/lib/gcc/aarch64-redhat-linux/15']
 
           [host_machine]
           system = 'linux'
