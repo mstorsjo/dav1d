@@ -82,8 +82,8 @@ jobs:
       fail-fast: false
       matrix:
         runner:
-          - macos-13
           - macos-14
+          - macos-15-intel
     runs-on: ${{matrix.runner}}
     steps:
       - uses: actions/checkout@v4
@@ -106,7 +106,7 @@ jobs:
         include:
           - { msvcarch: x64,   arch: x86_64,  clangarch: x86_64  }
           - { msvcarch: x86,   arch: i386,    clangarch: i386    }
-          - { msvcarch: arm,   arch: arm,     clangarch: armv7,  asmflags: '-clang:-mfpu=neon' }
+          - { msvcarch: arm,   arch: arm,     clangarch: armv7,  asmflags: '-clang:-mfpu=neon', sdk: 10.0.22621 }
           - { msvcarch: arm64, arch: aarch64, clangarch: aarch64 }
     steps:
       - name: Install prerequisites
@@ -120,7 +120,7 @@ jobs:
           path: msvc-wine
       - name: Download MSVC
         run: |
-          msvc-wine/vsdownload.py --accept-license --dest $(pwd)/msvc
+          msvc-wine/vsdownload.py --accept-license --dest $(pwd)/msvc ${{matrix.sdk != '' && '--sdk-version ' || ''}} ${{matrix.sdk}}
           msvc-wine/install.sh $(pwd)/msvc
       - name: Set up clang-cl/lld-link symlinks
         run: |
