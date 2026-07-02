@@ -18,6 +18,9 @@ include_directories(src)
 
 if (WIN32)
   include_directories(include/compat)
+  if (MSVC)
+    include_directories(include/compat/msvc)
+  endif()
 endif()
 
 # Convenience helper for adding an option if it is supported, automatically
@@ -85,7 +88,7 @@ if (WIN32)
   endif()
 endif()
 
-if (CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
+if (CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64")
   set(ARCH_AARCH64 1)
   message(STATUS "Enabling aarch64 assembly")
 elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "^arm")

@@ -1,18 +1,18 @@
 #pragma once
 
-#ifdef __aarch64__
+#if defined(__aarch64__) || defined(_M_ARM64)
 #define ARCH_AARCH64 1
 #define AS_ARCH_LEVEL armv8.6-a+crc
 #define HAVE_DOTPROD 1
 #define HAVE_I8MM 1
 #define HAVE_SVE 1
 #define HAVE_SVE2 1
-#elif defined(__arm__)
+#elif defined(__arm__) || defined(_M_ARM)
 #define ARCH_ARM 1
-#elif defined(__i386__) && !defined(NO_X86ASM)
+#elif (defined(__i386__) || defined(_M_IX86)) && !defined(NO_X86ASM)
 #define ARCH_X86 1
 #define ARCH_X86_32 1
-#elif defined(__x86_64__) && !defined(NO_X86ASM)
+#elif (defined(__x86_64__) || defined(_M_AMD64)) && !defined(NO_X86ASM)
 #define ARCH_X86 1
 #define ARCH_X86_64 1
 #endif
