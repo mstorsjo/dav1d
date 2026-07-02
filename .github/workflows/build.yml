@@ -223,3 +223,34 @@ jobs:
           wine-arm64 wineboot
           cd build
           wine-arm64 checkasm.exe
+
+  msvc:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { arch: amd64, runner: windows-latest }
+          - { arch: arm64, runner: windows-11-arm }
+    runs-on: ${{matrix.runner}}
+    steps:
+      - name: Set up the environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{matrix.arch}}
+      - uses: actions/checkout@v6
+      - name: Checkout gas-preprocessor
+        uses: actions/checkout@v6
+        with:
+          repository: ffmpeg/gas-preprocessor
+          ref: 7380ac24e1cd23a5e6d76c6af083d8fc5ab9e943
+          path: gas-preprocessor
+      - name: Add gas-preprocessor to path
+        run: |
+          echo "$PWD\gas-preprocessor" | Out-File -FilePath $Env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Build
+        run: |
+          mkdir build
+          cd build
+          cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release
+          ninja
+          ./checkasm.exe
