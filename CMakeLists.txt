@@ -126,6 +126,34 @@ else()
   message(STATUS "Not enabling any assembly optimizations for ${CMAKE_SYSTEM_PROCESSOR}")
 endif()
 
+function(add_arm_asm variable prefix)
+  if (NOT CMAKE_C_COMPILER_ID MATCHES "MSVC")
+    set(${variable} ${${variable}} ${ARGN} PARENT_SCOPE)
+  else()
+    set(asm_objs)
+    if (ARCH_AARCH64)
+      set(gaspp_arch arm64)
+      set(gaspp_tool armasm64)
+    else()
+      set(gaspp_arch arm)
+      set(gaspp_tool armasm)
+    endif()
+    foreach(asm ${ARGN})
+      set(src ${CMAKE_CURRENT_SOURCE_DIR}/${prefix}/${asm})
+      set(obj ${asm}.obj)
+      add_custom_command(
+        OUTPUT ${prefix}/${obj}
+        COMMAND gas-preprocessor.pl -as-type armasm -arch ${gaspp_arch} --
+                ${gaspp_tool} -nologo
+                -I${CMAKE_CURRENT_SOURCE_DIR} -I${CMAKE_CURRENT_SOURCE_DIR}/cmake
+                ${src} -c -o ${prefix}/${obj}
+        DEPENDS ${src})
+      list(APPEND asm_objs ${obj})
+    endforeach()
+    set(${variable} ${${variable}} ${asm_objs} PARENT_SCOPE)
+  endif()
+endfunction()
+
 # src
 
 set(dav1d_src
@@ -177,7 +205,8 @@ set(dav1d_tmpl_src
 
 if (ARCH_AARCH64)
   list(APPEND dav1d_src
-      arm/cpu.c
+      arm/cpu.c)
+  add_arm_asm(dav1d_src src
       arm/64/itx.S
       arm/64/looprestoration_common.S
       arm/64/msac.S
@@ -199,7 +228,8 @@ if (ARCH_AARCH64)
       arm/64/mc16_sve.S)
 elseif (ARCH_ARM)
   list(APPEND dav1d_src
-      arm/cpu.c
+      arm/cpu.c)
+  add_arm_asm(dav1d_src src
       arm/32/itx.S
       arm/32/looprestoration_common.S
       arm/32/msac.S
@@ -336,10 +366,10 @@ set(checkasm_tmpl_src
     mc.c)
 
 if (ARCH_AARCH64)
-  list(APPEND checkasm_src
+  add_arm_asm(checkasm_src tests/checkasm/
       arm/checkasm_64.S)
 elseif (ARCH_ARM)
-  list(APPEND checkasm_src
+  add_arm_asm(checkasm_src tests/checkasm/
       arm/checkasm_32.S)
 elseif (ARCH_I386 OR ARCH_X86_64)
   if (CMAKE_ASM_NASM_COMPILER)
